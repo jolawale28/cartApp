@@ -6,19 +6,30 @@ import { db } from './config/db/firebase';
 import { collection, doc, addDoc, deleteDoc, onSnapshot, query, orderBy } from 'firebase/firestore';
 
 import Image from "next/image";
-import { CirclePlus, Loader, Loader2, Trash, X } from "lucide-react";
+import { CirclePlus, Loader, Trash } from "lucide-react";
 import React, { useEffect, useRef, useState, useTransition } from "react";
 import { Id, toast } from 'react-toastify';
 import { formatDate } from './utility/func_utilities';
 import { useModal } from './modals/Modal';
 
+interface FirestoreTimestamp {
+  seconds: number;
+  nanoseconds: number;
+}
+
+interface CartItem {
+  id: string;
+  name: string;
+  timestamp: FirestoreTimestamp;
+}
+
 export default function Home() {
 
   const toastNotif = useRef<Id | null>(null)
 
-  const { Modal, isOpen, openModal, closeModal } = useModal();
+  const { Modal, openModal, closeModal } = useModal();
 
-  const [cartItems, setCartItems] = useState<{ id: string;[key: string]: any }[]>([]);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
   const [inputText, setInputText] = useState<string>('')
 
@@ -68,7 +79,7 @@ export default function Home() {
     setDeleteID(itemID)
     openModal()
   }
-  const [deletingItem, startDeletingItem] = useTransition()
+  const [, startDeletingItem] = useTransition()
   const confirmDelete = () => {
     closeModal()
     startDeletingItem(async () => {
@@ -83,7 +94,7 @@ export default function Home() {
           toast.dismiss(toastNotif.current);
         }
         toastNotif.current = toast.success('Item deleted successfully!')
-        
+
       } catch (error) {
         console.error("Error deleting item:", error);
         if (toastNotif.current) {
@@ -95,7 +106,7 @@ export default function Home() {
   }
 
   const [isLoading, setIsLoading] = useState(true);
-  const [fetchingItems, startFetchingItems] = useTransition()
+  const [, startFetchingItems] = useTransition()
   useEffect(() => {
     const q = query(collection(db, "cart"), orderBy("timestamp", "desc"));
 
@@ -106,16 +117,16 @@ export default function Home() {
         const items = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
-        }));
+        } as CartItem));
         console.log(items)
         setCartItems(items);
         setIsLoading(false);
       })
     },
-    (error) => {
-      console.log(error)
-    }
-  );
+      (error) => {
+        console.log(error)
+      }
+    );
 
     return () => unsubscribe();
   }, [])
@@ -184,7 +195,7 @@ export default function Home() {
                 </div>
               )
             }
-            
+
             {
               !isLoading && (
                 <ol className='list list-decimal list-inside space-y-2 h-full overflow-y-scroll'>
